@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 from numpy import int8
 import pygame
@@ -8,12 +10,16 @@ from tkinter import messagebox
 
 ROW_COUNT = 6
 COL_COUNT = 7
+PLAYER = 0
+PLAYER_PIECE = 1
+AI = 1
+AI_PIECE = 2
 
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
-NAVY_BLUE = (0, 0, 100)
+SKY_BLUE = (11, 214, 214)
 
 
 def create_connect4():
@@ -40,7 +46,6 @@ def piece_drop(board, row, col, piece):
 
 def flip_board(board):
     board = np.flipud(board)
-    print(board)
 
 
 def game_done():
@@ -54,10 +59,14 @@ def game_done():
         return False
 
 
+def score(board):
+    pass
+
+
 def final_score(board):
     sum1 = 0
     sum2 = 0
-    piece1 = 1
+    piece1 = PLAYER_PIECE
 
     for c in range(COL_COUNT - 3):
         for r in range(ROW_COUNT):
@@ -103,17 +112,16 @@ def draw_board(board):
 
     for c in range(COL_COUNT):
         for r in range(ROW_COUNT):
-            if board[r][c] == 1:
+            if board[r][c] == PLAYER_PIECE:
                 pygame.draw.circle(screen, RED, (
                     int(c * SQUARESIZE + SQUARESIZE / 2), height - int(r * SQUARESIZE + SQUARESIZE / 2)), RADIUS)
-            elif board[r][c] == 2:
+            elif board[r][c] == AI_PIECE:
                 pygame.draw.circle(screen, YELLOW, (
                     int(c * SQUARESIZE + SQUARESIZE / 2), height - int(r * SQUARESIZE + SQUARESIZE / 2)), RADIUS)
     pygame.display.update()
 
 
-# ####################################################################################################################################################################################################################################################### 
-turn = 0
+# #######################################################################################################################################################################################################################################################
 board = create_connect4()
 flip_board(board)
 
@@ -160,6 +168,7 @@ RADIUS = int(SQUARESIZE / 2 - 5)
 screen = pygame.display.set_mode(size)
 pygame.display.update()
 myfont = pygame.font.SysFont("monospace", 40)
+turn = random.randint(PLAYER, AI)
 
 while not game_done():
 
@@ -172,71 +181,73 @@ while not game_done():
         if event.type == pygame.MOUSEMOTION:
             pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
             posx = event.pos[0]
-            if turn == 0:
+            if turn == PLAYER:
                 pygame.draw.circle(screen, RED, (posx, int(SQUARESIZE / 2)), RADIUS)
-            else:
-                pygame.draw.circle(screen, YELLOW, (posx, int(SQUARESIZE / 2)), RADIUS)
-        pygame.display.update()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             pygame.draw.rect(screen, BLACK, (0, 0, width, SQUARESIZE))
-            if turn == 0:
+            if turn == PLAYER:
                 posx = event.pos[0]
                 col = int(math.floor(posx / SQUARESIZE))
 
                 if move_is_valid(board, col):
                     row = which_ROW(board, col)
-                    piece_drop(board, row, col, 1)
+                    piece_drop(board, row, col, PLAYER_PIECE)
 
                     if game_done():
                         s1, s2 = final_score(board)
                         if s1 > s2:
-                            label = myfont.render(f"Player 1 wins!! SCORE={s1 - s2}", 1, RED)
+                            label = myfont.render(f"HUMAN wins!! {s1} - {s2}", 1, RED)
                             screen.blit(label, (40, 10))
 
                         elif s1 < s2:
-                            label = myfont.render(f"Player 2 wins!! SCORE={s2 - s1}", 1, YELLOW)
+                            label = myfont.render(f"AI wins!! {s2} - {s1}", 1, YELLOW)
                             screen.blit(label, (40, 10))
 
                         else:
-                            label = myfont.render(f"TIE {s1}-{s2}", 1, NAVY_BLUE)
+                            label = myfont.render(f"TIE {s1} - {s2}", 1, SKY_BLUE)
                             screen.blit(label, (40, 10))
+
+                    flip_board(board)
+                    draw_board(board)
+                    turn = AI
+                    if game_done():
+                        pygame.time.wait(5000)
 
                 else:
                     label = myfont.render("please choose a valid location", 1, RED)
                     screen.blit(label, (10, 10))
                     continue
-            else:
-                posx = event.pos[0]
-                col = int(math.floor(posx / SQUARESIZE))
 
-                if move_is_valid(board, col):
-                    row = which_ROW(board, col)
-                    piece_drop(board, row, col, 2)
+    if turn == AI and not game_done():
 
-                    if game_done():
-                        s1, s2 = final_score(board)
-                        if s1 > s2:
-                            label = myfont.render(f"Player 1 wins!! SCORE={s1 - s2}", 1, RED)
-                            screen.blit(label, (40, 10))
+        col = random.randint(0, COL_COUNT-1)
 
-                        elif s1 < s2:
-                            label = myfont.render(f"Player 2 wins!! SCORE={s2 - s1}", 1, YELLOW)
-                            screen.blit(label, (40, 10))
+        if move_is_valid(board, col):
+            row = which_ROW(board, col)
+            piece_drop(board, row, col, AI_PIECE)
 
-                        else:
-                            label = myfont.render(f"TIE {s1}-{s2}", 1, YELLOW)
-                            screen.blit(label, (40, 10))
+            if game_done():
+                s1, s2 = final_score(board)
+                if s1 > s2:
+                    label = myfont.render(f"HUMAN wins!! {s1} - {s2}", 1, RED)
+                    screen.blit(label, (40, 10))
+
+                elif s1 < s2:
+                    label = myfont.render(f"AI wins!! {s2} - {s1}", 1, YELLOW)
+                    screen.blit(label, (40, 10))
+
                 else:
-                    label = myfont.render("please choose a valid location", 1, YELLOW)
-                    screen.blit(label, (10, 10))
-                    continue
+                    label = myfont.render(f"TIE {s1} - {s2}", 1, SKY_BLUE)
+                    screen.blit(label, (40, 10))
 
             flip_board(board)
             draw_board(board)
-
-            turn += 1
-            turn = turn % 2
-
+            turn = PLAYER
             if game_done():
                 pygame.time.wait(5000)
+        else:
+            continue
+
+
+
