@@ -78,17 +78,15 @@ def score_scope(scope, piece):
     if scope.count(piece) == 4:
         score_sum += 100
     elif scope.count(piece) == 3 and scope.count(EMPTY) == 1:
-        score_sum += 10
+        score_sum += 55
     elif scope.count(piece) == 2 and scope.count(EMPTY) == 2:
-        score_sum += 5
+        score_sum += 2
 
-    if scope.count(opp_piece) == 3 and scope.count(EMPTY) == 1:
-        score_sum -= 10
+    if scope.count(opp_piece) == 4:
+        score_sum -= 200
+    elif scope.count(opp_piece) == 3 and scope.count(EMPTY) == 1:
+        score_sum -= 100
     return score_sum
-
-
-
-
 
 
 
@@ -97,7 +95,7 @@ def score(board, piece):
     #center dom
     center = [int(i) for i in list(board[:, COL_COUNT//2])]
     center_count = center.count(piece)
-    score_sum += center_count*5
+    score_sum += center_count*10
     #horizontal scores
     for r in range(ROW_COUNT):
         row = [int(i) for i in list(board[r,:])]
@@ -158,8 +156,7 @@ def final_score(board):
     # -ve diagonal check
     for c in range(COL_COUNT - 3):
         for r in range(3, ROW_COUNT):
-            if (board[r][c] == board[r - 1][c + 1] and board[r][c] == board[r - 2][c + 2] and board[r][c] ==
-                    board[r - 3][c + 3]):
+            if (board[r][c] == board[r - 1][c + 1] and board[r][c] == board[r - 2][c + 2] and board[r][c] == board[r - 3][c + 3]):
                 if board[r][c] == piece1:
                     sum1 += 1
                 else:
@@ -274,42 +271,41 @@ def draw_board(board):
     pygame.display.update()
 
 
-# #######################################################################################################################################################################################################################################################
+########################################################################################################################################################################################################################################################
+
 board = create_connect4()
 
-# root = Tk()
-#
-# root.title('On/Off Prunning!')
-#
-#
-# root.geometry("500x300")
-# is_on = True
-# my_label = Label(root,
-#                  text="The prunning Is On!",
-#                  fg="green",
-#                  font=("Helvetica", 32))
-#
-# my_label.pack(pady=20)
-#
-# def switch():
-#     global is_on
-#     if is_on:
-#         on_button.config(image=off)
-#         my_label.config(text="The prunning is Off!",
-#                         fg="grey")
-#         is_on = False
-#     else:
-#
-#         on_button.config(image=on)
-#         my_label.config(text="The prunning is On!", fg="green")
-#         is_on = True
-#
-# on = PhotoImage(file="on.png")
-# off = PhotoImage(file="off.png")
-# on_button = Button(root, image=on, bd=0,
-#                    command=switch)
-# on_button.pack(pady=50)
-# root.mainloop()
+root = Tk()
+root.title('On/Off Prunning!')
+root.geometry("500x300")
+is_on = True
+
+my_label = Label(root,
+                 text="The prunning Is On!",
+                 fg="green",
+                 font=("Helvetica", 32))
+
+my_label.pack(pady=20)
+
+def switch():
+    global is_on
+    if is_on:
+        on_button.config(image=off)
+        my_label.config(text="The prunning is Off!",fg="grey")
+        is_on = False
+    else:
+
+        on_button.config(image=on)
+        my_label.config(text="The prunning is On!", fg="green")
+        is_on = True
+
+on = PhotoImage(file="on.png")
+off = PhotoImage(file="off.png")
+on_button = Button(root, image=on, bd=0,
+                   command=switch)
+on_button.pack(pady=50)
+root.mainloop()
+
 
 pygame.init()
 SQUARESIZE = 125
@@ -323,7 +319,6 @@ myfont = pygame.font.SysFont("monospace", 40)
 turn = random.randint(PLAYER, AI)
 
 while not game_done(board):
-
     draw_board(board)
 
     for event in pygame.event.get():
@@ -373,7 +368,11 @@ while not game_done(board):
 
     if turn == AI and not game_done(board):
 
-        col, minimax_score = minimax_pruning(board, 4, -math.inf, math.inf, True)
+        if is_on:
+            col, minimax_score = minimax_pruning(board, 4, -math.inf, math.inf, True)
+        else:
+            col, minimax_score = minimax(board, 4, True)
+
 
         if move_is_valid(board, col):
             row = which_ROW(board, col)
