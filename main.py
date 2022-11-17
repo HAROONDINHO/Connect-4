@@ -1,5 +1,4 @@
 import random
-
 import numpy as np
 from numpy import int8
 import pygame
@@ -8,6 +7,7 @@ import math
 from tkinter import *
 from tkinter import messagebox
 import copy
+
 
 ROW_COUNT = 6
 COL_COUNT = 7
@@ -24,6 +24,69 @@ RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
 SKY_BLUE = (11, 214, 214)
 
+## operations on binary representation of the board
+def bin_to_np(bin_board):
+    new_np = np.zeros((6, 7), dtype=int8)
+    for i in range(7):
+        for j in range(((7<<(60-9*i))&bin_board)>>(60-9*i)):
+            new_np[j, i] = (((1 << (59 - 9 * i - j) ) & (bin_board)) >> (59 - 9 * i - j))+1
+    return new_np
+
+
+def np_to_bin(np_board):
+    new_bin = 9223372036854775808
+    rows_count = [0, 0, 0, 0, 0, 0, 0]
+    for i in range(7):
+        x = which_ROW(np_board, i)
+        if x == None:
+            rows_count[i] = 6
+        else:
+            rows_count[i] = x
+    for i in range(7):
+        new_bin = new_bin|(rows_count[i]<<(60-9*i))
+    cols_content = []
+    for i in range(7):
+        cols_content.append(list(np_board[:, i]))
+    for i in range(7):
+        for j in range(rows_count[i]):
+            if(cols_content[i][j]==AI_PIECE):
+                new_bin = new_bin|(1<<(59-9*i-j))
+    return new_bin
+
+
+def bin_game_done(bin_board):
+    k = 0
+    for i in range(COL_COUNT):
+        if((((7<<(60-9*i))&bin_board)>>(60-9*i)) <= 5):
+            k+=1
+            break
+    if (k == 0):
+        return True
+    else:
+        return False
+
+def bin_valid_locations(bin_board):
+    valid = []
+    for c in range(COL_COUNT):
+        if ((((7<<(60-9*c))&bin_board)>>(60-9*c)) <= 5):
+            valid.append(c)
+    return valid
+
+
+def bin_piece_drop(bin_board, row, col, piece):
+    # update row count for the column
+    new_bin_which_ROW = (((7<<(60-9*col))&bin_board)>>(60-9*col)) + 1
+    temp = bin_board&(~(7<<(60-(9*col))))
+    bin_board = ((bin_board>>(60-9*col)))
+    bin_board = (((bin_board&8)|new_bin_which_ROW)<<(60-9*col))|temp
+    # update position
+    if piece==AI_PIECE:
+        bin_board = bin_board|(1<<(59-(9*col)-row))
+    else:
+        bin_board = bin_board&~(1<<(59-(9*col)-row))
+    return bin_board
+
+#####################################################################################################################
 
 def create_connect4():
     board = np.zeros((ROW_COUNT, COL_COUNT), dtype=int8)
@@ -35,12 +98,6 @@ def move_is_valid(board, COL):
     if board[ROW_COUNT - 1][COL] == 0:
         return True
 
-def valid_locations(board):
-    valid = []
-    for c in range(COL_COUNT):
-        if move_is_valid(board, c):
-            valid.append(c)
-    return valid
 
 ## check if the ROW is empty so that we know where the player can play
 def which_ROW(board, col):
@@ -51,10 +108,6 @@ def which_ROW(board, col):
 
 def piece_drop(board, row, col, piece):
     board[row][col] = piece
-
-
-def flip_board(board):
-    board = np.flipud(board)
 
 
 def game_done(board):
@@ -166,10 +219,10 @@ def final_score(board):
 
 
 def minimax(board, depth, maxplayer):
-    locations = valid_locations(board)
-    if depth == 0 or game_done(board):
-        if game_done(board):
-            s1, s2 = final_score(board)
+    if depth == 0 or bin_game_done(board):
+        if bin_game_done(board):
+            temp = bin_to_np(board)
+            s1, s2 = final_score(temp)
             if s2 > s1:
                 return (None, 10000000000)
             elif s1 > s2:
@@ -177,14 +230,14 @@ def minimax(board, depth, maxplayer):
             else:
                 return (None, 0)
         else: #depth is 0
-            return (None, score(board, AI_PIECE))
+            return (None, score(bin_to_np(board), AI_PIECE))
+    locations = bin_valid_locations(board)
     if maxplayer: #maxplayer
         value = -math.inf
         column = random.choice(locations)
         for col in locations:
-            row = which_ROW(board, col)
-            temp = board.copy()
-            piece_drop(temp, row, col, AI_PIECE)
+            row = (((7<<(60-9*col))&board)>>(60-9*col))
+            temp = bin_piece_drop(board, row, col, AI_PIECE)
             new_value = minimax(temp, depth-1, False)[1]
             if new_value > value:
                 value = new_value
@@ -195,9 +248,8 @@ def minimax(board, depth, maxplayer):
         value = math.inf
         column = random.choice(locations)
         for col in locations:
-            row = which_ROW(board, col)
-            temp = board.copy()
-            piece_drop(temp, row, col, PLAYER_PIECE)
+            row = ((7<<(60-9*col))&board)>>(60-9*col)
+            temp = bin_piece_drop(board, row, col, PLAYER_PIECE)
             new_value = minimax(temp, depth - 1, True)[1]
             if new_value < value:
                 value = new_value
@@ -206,10 +258,9 @@ def minimax(board, depth, maxplayer):
 
 
 def minimax_pruning(board, depth, alpha, beta, maxplayer):
-    locations = valid_locations(board)
-    if depth == 0 or game_done(board):
-        if game_done(board):
-            s1, s2 = final_score(board)
+    if depth == 0 or bin_game_done(board):
+        if bin_game_done(board):
+            s1, s2 = final_score(bin_to_np(board))
             if s2 > s1:
                 return (None, 10000000000)
             elif s1 > s2:
@@ -217,14 +268,14 @@ def minimax_pruning(board, depth, alpha, beta, maxplayer):
             else:
                 return (None, 0)
         else: #depth is 0
-            return (None, score(board, AI_PIECE))
+            return (None, score(bin_to_np(board), AI_PIECE))
+    locations = bin_valid_locations(board)
     if maxplayer: #maxplayer
         value = -math.inf
-        column = random.choice(locations)
+        column = locations[len(locations)//2]
         for col in locations:
-            row = which_ROW(board, col)
-            temp = board.copy()
-            piece_drop(temp, row, col, AI_PIECE)
+            row = (((7<<(60-9*col))&(board))>>(60-9*col))
+            temp = bin_piece_drop(board, row, col, AI_PIECE)
             new_value = minimax_pruning(temp, depth-1, alpha, beta, False)[1]
             if new_value > value:
                 value = new_value
@@ -236,11 +287,10 @@ def minimax_pruning(board, depth, alpha, beta, maxplayer):
 
     else: #minplayer
         value = math.inf
-        column = random.choice(locations)
+        column = locations[len(locations)//2]
         for col in locations:
-            row = which_ROW(board, col)
-            temp = board.copy()
-            piece_drop(temp, row, col, PLAYER_PIECE)
+            row = (((7<<(60-9*col))&board)>>(60-9*col))
+            temp = bin_piece_drop(board, row, col, PLAYER_PIECE)
             new_value = minimax_pruning(temp, depth - 1, alpha, beta,True)[1]
             if new_value < value:
                 value = new_value
@@ -355,7 +405,6 @@ while not game_done(board):
                             label = myfont.render(f"TIE {s1} - {s2}", 1, SKY_BLUE)
                             screen.blit(label, (40, 10))
 
-                    flip_board(board)
                     draw_board(board)
                     turn = AI
                     if game_done(board):
@@ -366,12 +415,13 @@ while not game_done(board):
                     screen.blit(label, (10, 10))
                     continue
 
-    if turn == AI and not game_done(board):
+    bin_board = np_to_bin(board)
+    if turn == AI and not bin_game_done(bin_board):
 
         if is_on:
-            col, minimax_score = minimax_pruning(board, 4, -math.inf, math.inf, True)
+            col, minimax_score = minimax_pruning(bin_board, 6, -math.inf, math.inf, True)
         else:
-            col, minimax_score = minimax(board, 4, True)
+            col, minimax_score = minimax(bin_board, 6, True)
 
 
         if move_is_valid(board, col):
@@ -392,7 +442,6 @@ while not game_done(board):
                     label = myfont.render(f"TIE {s1} - {s2}", 1, SKY_BLUE)
                     screen.blit(label, (40, 10))
 
-            flip_board(board)
             draw_board(board)
             turn = PLAYER
             if game_done(board):
