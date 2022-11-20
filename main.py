@@ -7,7 +7,7 @@ import math
 from tkinter import *
 from tkinter import messagebox
 import copy
-
+import time
 
 ROW_COUNT = 6
 COL_COUNT = 7
@@ -24,8 +24,11 @@ RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
 SKY_BLUE = (11, 214, 214)
 
+new_np = np.zeros((6, 7), dtype=int8)
+
 ## operations on binary representation of the board
 def bin_to_np(bin_board):
+    global new_np
     new_np = np.zeros((6, 7), dtype=int8)
     for i in range(7):
         for j in range(((7<<(60-9*i))&bin_board)>>(60-9*i)):
@@ -219,6 +222,7 @@ def final_score(board):
 
 
 def minimax(board, depth, maxplayer):
+    tree = Node(None)
     if depth == 0 or bin_game_done(board):
         if bin_game_done(board):
             temp = bin_to_np(board)
@@ -418,10 +422,12 @@ while not game_done(board):
     bin_board = np_to_bin(board)
     if turn == AI and not bin_game_done(bin_board):
 
+        time0 = time.time()
         if is_on:
-            col, minimax_score = minimax_pruning(bin_board, 6, -math.inf, math.inf, True)
+            col, minimax_score = minimax_pruning(bin_board, 5, -math.inf, math.inf, True)
         else:
-            col, minimax_score = minimax(bin_board, 6, True)
+            col, minimax_score = minimax(bin_board, 5, True)
+        print(f"\n{time.time()-time0}\n")
 
 
         if move_is_valid(board, col):
