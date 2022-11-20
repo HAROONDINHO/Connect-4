@@ -8,6 +8,7 @@ from tkinter import *
 from tkinter import messagebox
 import copy
 import time
+from treelib import Node, Tree
 
 ROW_COUNT = 6
 COL_COUNT = 7
@@ -25,6 +26,9 @@ YELLOW = (255, 255, 0)
 SKY_BLUE = (11, 214, 214)
 
 new_np = np.zeros((6, 7), dtype=int8)
+
+mm_tree = Tree()
+treeroot = mm_tree.create_node("Root", "root")
 
 ## operations on binary representation of the board
 def bin_to_np(bin_board):
@@ -220,9 +224,11 @@ def final_score(board):
 
     return sum1, sum2
 
+node_count = 0
 
-def minimax(board, depth, maxplayer):
-    tree = Node(None)
+def minimax(board, depth, maxplayer, root):
+    global mm_tree
+    global node_count
     if depth == 0 or bin_game_done(board):
         if bin_game_done(board):
             temp = bin_to_np(board)
@@ -241,8 +247,12 @@ def minimax(board, depth, maxplayer):
         column = random.choice(locations)
         for col in locations:
             row = (((7<<(60-9*col))&board)>>(60-9*col))
+            parent_id = root.identifier
+            parent = mm_tree.create_node(col, node_count, parent=root)
+            node_count+=1
             temp = bin_piece_drop(board, row, col, AI_PIECE)
-            new_value = minimax(temp, depth-1, False)[1]
+            new_value = minimax(temp, depth-1, False, parent)[1]
+            parent = mm_tree.get_node(nid=parent_id)
             if new_value > value:
                 value = new_value
                 column = col
@@ -253,15 +263,21 @@ def minimax(board, depth, maxplayer):
         column = random.choice(locations)
         for col in locations:
             row = ((7<<(60-9*col))&board)>>(60-9*col)
+            parent_id = root.identifier
+            parent = mm_tree.create_node(col, node_count, parent=root)
+            node_count += 1
             temp = bin_piece_drop(board, row, col, PLAYER_PIECE)
-            new_value = minimax(temp, depth - 1, True)[1]
+            new_value = minimax(temp, depth - 1, True, parent)[1]
+            parent = mm_tree.get_node(nid=parent_id)
             if new_value < value:
                 value = new_value
                 column = col
         return column, value
 
 
-def minimax_pruning(board, depth, alpha, beta, maxplayer):
+def minimax_pruning(board, depth, alpha, beta, maxplayer, root):
+    global mm_tree
+    global node_count
     if depth == 0 or bin_game_done(board):
         if bin_game_done(board):
             s1, s2 = final_score(bin_to_np(board))
@@ -279,8 +295,12 @@ def minimax_pruning(board, depth, alpha, beta, maxplayer):
         column = locations[len(locations)//2]
         for col in locations:
             row = (((7<<(60-9*col))&(board))>>(60-9*col))
+            parent_id = root.identifier
+            parent = mm_tree.create_node(col, node_count, parent=root)
+            node_count += 1
             temp = bin_piece_drop(board, row, col, AI_PIECE)
-            new_value = minimax_pruning(temp, depth-1, alpha, beta, False)[1]
+            new_value = minimax_pruning(temp, depth-1, alpha, beta, False, parent)[1]
+            parent = mm_tree.get_node(nid=parent_id)
             if new_value > value:
                 value = new_value
                 column = col
@@ -294,8 +314,12 @@ def minimax_pruning(board, depth, alpha, beta, maxplayer):
         column = locations[len(locations)//2]
         for col in locations:
             row = (((7<<(60-9*col))&board)>>(60-9*col))
+            parent_id = root.identifier
+            parent = mm_tree.create_node(col, node_count, parent=root)
+            node_count += 1
             temp = bin_piece_drop(board, row, col, PLAYER_PIECE)
-            new_value = minimax_pruning(temp, depth - 1, alpha, beta,True)[1]
+            new_value = minimax_pruning(temp, depth - 1, alpha, beta,True, parent)[1]
+            parent = mm_tree.get_node(nid=parent_id)
             if new_value < value:
                 value = new_value
                 column = col
@@ -424,9 +448,10 @@ while not game_done(board):
 
         time0 = time.time()
         if is_on:
-            col, minimax_score = minimax_pruning(bin_board, 5, -math.inf, math.inf, True)
+            col, minimax_score = minimax_pruning(bin_board, 4, -math.inf, math.inf, True, treeroot)
         else:
-            col, minimax_score = minimax(bin_board, 5, True)
+            col, minimax_score = minimax(bin_board, 5, True, treeroot)
+        mm_tree.show()
         print(f"\n{time.time()-time0}\n")
 
 
