@@ -229,6 +229,7 @@ node_count = 0
 def minimax(board, depth, maxplayer, root):
     global mm_tree
     global node_count
+
     if depth == 0 or bin_game_done(board):
         if bin_game_done(board):
             temp = bin_to_np(board)
@@ -447,11 +448,15 @@ while not game_done(board):
     if turn == AI and not bin_game_done(bin_board):
 
         time0 = time.time()
+        mm_tree = Tree()
+        node_count = 0
+        treeroot = mm_tree.create_node("Root", "root")
         if is_on:
-            col, minimax_score = minimax_pruning(bin_board, 4, -math.inf, math.inf, True, treeroot)
+            col, minimax_score = minimax_pruning(bin_board, 5, -math.inf, math.inf, True, treeroot)
         else:
             col, minimax_score = minimax(bin_board, 5, True, treeroot)
         mm_tree.show()
+        print(node_count)
         print(f"\n{time.time()-time0}\n")
 
 
