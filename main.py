@@ -452,10 +452,10 @@ while not game_done(board):
         node_count = 0
         treeroot = mm_tree.create_node("Root", "root")
         if is_on:
-            col, minimax_score = minimax_pruning(bin_board, 5, -math.inf, math.inf, True, treeroot)
+            col, minimax_score = minimax_pruning(bin_board, 7, -math.inf, math.inf, True, treeroot)
         else:
             col, minimax_score = minimax(bin_board, 5, True, treeroot)
-        mm_tree.show()
+        mm_tree.show(line_type="ascii-em")
         print(node_count)
         print(f"\n{time.time()-time0}\n")
 
